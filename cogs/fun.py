@@ -303,11 +303,9 @@ class Fun(commands.Cog):
         await ctx.send(content=sO)
 
 
-    @commands.command(aliases=['8-ball', '8ball', 'magic8ball'], help='no arg: requested by Annalina')
-    # @commands.has_role(settings.VERIFIED_ROLE_ID)
-    @commands.is_owner()
+    @commands.command(aliases=['8-ball', '8ball', 'magic8ball'], help='(question) requested by Annalina')
+    @commands.has_role(settings.VERIFIED_ROLE_ID)
     async def magic8(self, ctx, *, string):
-        print(ctx.message.content.lower())
         if 'server owner' in string.lower() or 'serverowner' in string.lower():
             out = 'Do __**NOT**__ ask who owns the server.'
 
@@ -352,6 +350,30 @@ class Fun(commands.Cog):
             out = '🎱 ' + responses[seed]
         await ctx.send(out)
 
+    @commands.command(aliases=['keyed'], help='(question) requested by Annalina')
+    @commands.has_role(settings.VERIFIED_ROLE_ID)
+    async def based(self, ctx):
+        async for message in ctx.channel.history(limit=2):
+            if message.id != ctx.message.id:
+                break
+        await ctx.message.delete()
+        emotes = [
+            '\N{Regional Indicator Symbol Letter B}',
+            '\N{Regional Indicator Symbol Letter A}',
+            '\N{Regional Indicator Symbol Letter S}',
+            '\N{Regional Indicator Symbol Letter E}',
+            '\N{Regional Indicator Symbol Letter D}',
+            '\U00002753',
+            '\N{Regional Indicator Symbol Letter O}',
+            '\N{Regional Indicator Symbol Letter N}',
+            '\U00002754',
+            '\N{Regional Indicator Symbol Letter W}',
+            '\N{Regional Indicator Symbol Letter H}',
+            '\U0001F170',
+            '\N{Regional Indicator Symbol Letter T}'
+        ]
+        while emotes:
+            await message.add_reaction(emotes.pop(0))
 
 def setup(bot):
     bot.add_cog(Fun(bot))
