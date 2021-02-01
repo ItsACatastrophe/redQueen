@@ -79,21 +79,11 @@ class Events(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    async def periodic_push(self):
-        duration = (datetime.max - datetime.today()).seconds + 5
-        await asyncio.sleep(duration)
-        while True:
-            dbinteract.activity_push(self.members, datetime.now().date())
-            self.members = []  
-            await asyncio.sleep(86400)      
-
-
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'{self.bot.user.name} has connected succesfully!')
         game = discord.Game(name="with the server settings")
         await self.bot.change_presence(activity=game)
-        await Events.periodic_push(self) #Should always be the last line of on_ready
 
 
     async def log_block(self, member):
@@ -236,7 +226,7 @@ class Events(commands.Cog):
     async def disboard_onm(self, message):
     #disboard successful bump message
         if message.author.id == 302050872383242240 and str(message.embeds[0].color) == '#24b7b7' and ':thumbsup:' in message.embeds[0].description: 
-            role = self.guild.get_role(settings.SPEED_FINGERS_ID)
+            role = message.guild.get_role(settings.SPEED_FINGERS_ID)
             for member in role.members:
                 await member.remove_roles(role, reason='bump role')
 
@@ -244,7 +234,11 @@ class Events(commands.Cog):
             i = embed.description.find(',')
             member_id = embed.description[2:(i-1)]
             member = self.guild.get_member(int(member_id))
-            await member.add_roles(role, reason='bump role')   
+            await member.add_roles(role, reason='bump role')
+
+            #Assuring last seen update triggers more often
+            dbinteract.activity_push(self.members, datetime.now().date())
+            self.members = []  
 
 
     async def activity_upd(self, message):
