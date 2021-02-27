@@ -61,6 +61,11 @@ class Boost(commands.Cog):
         db = TinyDB(settings.DB_PATH + str(ctx.author.id) + '.json')
         table = db.table('boost')
         member = Query()
+    
+        if hex_color[0] == '#':
+            hex_color = hex_color[1:]
+        hexadecimal = int(hex_color.lower(), 16)
+        
         try:
             role_id = table.get(member.role_id != None)['role_id']
         except TypeError:
@@ -81,11 +86,6 @@ class Boost(commands.Cog):
 
         role = ctx.guild.get_role(role_id) 
 
-        if hex_color[0] == '#':
-            hex_color = hex_color[1:]
-    
-        hexadecimal = int(hex_color.lower(), 16)
-        
         try:
             await role.edit(color=discord.Color(hexadecimal))
         except AttributeError:
