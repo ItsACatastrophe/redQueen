@@ -417,6 +417,25 @@ class Admin(commands.Cog):
             
         emote = self.bot.get_emoji(790040369400250388)
         await ctx.message.add_reaction(emote)
+
+    @commands.command(help='Staff only', enabled=False)
+    @commands.has_role(settings.STAFF_ROLE_ID)
+    async def cleanup_booster_roles(self, ctx):
+        boost_role = ctx.guild.get_role(settings.BOOSTER_ROLE_ID)
+        current_pos = ctx.guild.get_role(settings.BOOSTER_CATEGORY).position - 1
+        end_pos = ctx.guild.get_role(settings.BOOSTER_CATEGORY_END).position
+        # roles = await ctx.guild.fetch_roles()
+        while current_pos > end_pos:
+            role = discord.utils.get(ctx.guild.roles, position=current_pos)
+            print(type(role))
+            print(role.name.encode(encoding="ascii", errors="replace"))
+            for member in role.members:
+                if boost_role not in member.roles:
+                    #delete their boost role because they shouldn't have a boost role
+                    print('^^^ This user should not have their boost role')
+            current_pos -= 1
+        print('done')
+        
         
 
 def setup(bot):
