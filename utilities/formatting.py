@@ -55,7 +55,7 @@ def simplify(string):
                 out = out[0:-1] + char
             else: 
                 out = out + char
-    if out[-1] == "s":
+    if out and out[-1] == "s":
         out = out[:-1]
     return out.lower().translate(trans_table)
 
