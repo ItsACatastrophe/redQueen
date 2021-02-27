@@ -19,6 +19,7 @@ class Events(commands.Cog):
         self.members = []
         self.ban_time = 0
         self.warnings = []
+        self.removed_message = False
 
         #Embed Log Constant (change name & color when )
         self.embed_log = None
@@ -166,8 +167,11 @@ class Events(commands.Cog):
         self.embed_log.add_field(name='Message', value=message.content, inline=True)
         await self.log_channel.send(embed=self.embed_log)
         self.embed_log.clear_fields()
-
+        
+        self.removed_message = True
         await message.delete()
+        await asyncio.sleep(1)
+        self.remove_message = False
 
     async def link_warn(self, message, urls, ban=False):
         await Events.global_assignment(self)
@@ -203,8 +207,12 @@ class Events(commands.Cog):
             self.embed_log.set_footer(text='WARNING: LINK MAY BE MALICIOUS', icon_url='https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/twitter/259/exclamation-mark_2757.png')
 
         await self.log_channel.send(embed=self.embed_log)
-        await message.delete()
         self.embed_log.clear_fields()
+
+        self.removed_message = True
+        await message.delete()
+        await asyncio.sleep(1)
+        self.remove_message = False
 
 
     async def chat_filter(self, message):
@@ -407,9 +415,9 @@ class Events(commands.Cog):
             latest_log = await self.log_channel.fetch_message(self.log_channel.last_message_id)
             log_difference = datetime.utcnow() - latest_log.created_at
 
-            audit_log_cond = message.author != latest_audit.target and audit_difference.total_seconds() > 2
+            audit_log_cond = message.author == latest_audit.target and audit_difference.total_seconds() < 2
             mod_log_cond = latest_log.embeds[0].author.icon_url != message.author.avatar_url and log_difference.total_seconds() > 2
-            if audit_log_cond and mod_log_cond :
+            if not audit_log_cond and mod_log_cond and not self.removed_message :
                 await Events.embed_log_edit(self, 0x64b4ff, message.author, "Unverified message delete")
                 if len(message.content) > 300:
                     content = message.content[0:300] + "..."
