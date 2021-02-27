@@ -1,4 +1,5 @@
 import discord
+import os
 
 from discord.ext import commands
 from utilities import formatting, settings, dbinteract
@@ -10,38 +11,28 @@ settings = settings.config("settings.json")
 class Requests(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.guild = self.bot.get_guild(settings.GUILD_ID)
+        self.role = None
 
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def test1(self, ctx):
-        await ctx.send(content=self.boost.name)
-
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def boostsetup(self, ctx):
-        member_list = []
-        role = ctx.guild.get_role(settings.BOOSTER_ROLE_ID)
-
+    async def test(self, ctx):
+        role = self.guild.get_role(settings.SPEED_FINGERS_ID)
         for member in role.members:
-            path = settings.DB_PATH + str(member.id) + '.json'
-            db = TinyDB(path)
-            table = db.table('boost')
-            member = Query()
-            table.upsert({'role_id' : 'temp'}, member.role_id != None)
-            formatting.fancify(path)
+            await member.remove_roles(role, reason='bump role')
 
+
+    #@commands.command()
+    #@commands.has_permissions(administrator=True)
+    #async def dbrecover(self, ctx, * , members):
+        
 
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def test2(self, ctx):
-        path = settings.DB_PATH + 'temp' + '.json'
-        db = TinyDB(path)
-        table = db.table('test')
-        member = Query()
-        table.remove(member.key1 != None)
-        formatting.fancify(path) 
+        await ctx.send(formatting.get_from_in(self.bot, ctx, "use", ctx.author.id).name)
+        #should send "Cat"
 
 
     @commands.command()
@@ -93,7 +84,24 @@ class Requests(commands.Cog):
             member_list.append(member.id)
 
         dbinteract.activity_push(member_list, 'before 2020-08-31')
- 
+
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def dbcleanup(self, ctx):
+        member_list = []
+        for member in ctx.guild.members:
+            member_list.append(member.id)
+
+        file_list = []
+        for file in os.listdir(settings.DB_PATH):
+            file_list.append(int(file[0:-5]))
+            
+        print(file_list)
+        for fname in file_list:
+            if fname not in member_list:
+                os.remove(str(fname) + ".json")
+
 
     @commands.command(help='noarg: a simple way to tell if the bot is online')
     @commands.has_role(settings.VERIFIED_ROLE_ID)
@@ -180,7 +188,7 @@ class Requests(commands.Cog):
     @commands.command(help='no arg')
     @commands.has_permissions(administrator=True)
     async def format4(self, ctx):
-        embed = discord.Embed(description='**(mention user) was (banned/kicked/action taken)', color=0xfefefe)
+        embed = discord.Embed(description='**(mention user) was (banned/kicked/action taken)**', color=0xfefefe)
         embed.set_author(name='Target of the action', icon_url='https://i.imgur.com/oKHBjZt.png')
         embed.set_thumbnail(url='https://i.imgur.com/oKHBjZt.png')
         embed.timestamp = ctx.message.created_at
