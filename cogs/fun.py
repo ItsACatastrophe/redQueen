@@ -4,9 +4,11 @@ import asyncio
 from discord.ext import commands
 from utilities import formatting, settings
 from random import randint
+from cogs.battle import fighter as fighter_util
+from cogs.battle import battle as battle_util
+
 
 settings = settings.config("settings.json")
-
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -236,29 +238,107 @@ class Fun(commands.Cog):
 
 
     #UNFINISHED
-    @commands.command(help='(user)')
-    @commands.is_owner()
-    async def deathbattle(self, ctx, *, target):
-        try:
-            member2_name = formatting.get_from_in(self.bot, ctx, "mem", target)
-        except TypeError:
-            member2_name = target   
-        member1_name = ctx.author.name
+    @commands.command(help='(user)', aliases=['deathbattle', 'fight'])
+    @commands.has_role(settings.VERIFIED_ROLE_ID)
+    async def battle(self, ctx, target1, target0=None):
+        fighter1 = fighter_util.Fighter(formatting.get_from_in(self.bot, ctx, "mem", target1), 1)
+        if target0:
+            fighter0 = fighter_util.Fighter(formatting.get_from_in(self.bot, ctx, "mem", target0), 0)
+        else:
+            fighter0 = fighter_util.Fighter(ctx.author, 0)
 
-        hp1_t = 100
-        hp2_t = 100
+        fighters = [fighter0, fighter1]
+        users_set = {fighter0.user, fighter1.user}
 
-        current_hp = [hp1_t, hp2_t] # [0] is member1, [1] is member2
+        for fighter in fighters:
+            if settings.BOT_ID == fighter.user.id:
+                choices = list(battle_util.weapon_choice.keys())
+                seed = randint(0, len(choices))
+                fighter.set_weapon(choices[seed])
 
-        embed = discord.Embed(description=f'{member1_name} __vs__ {member2.name}', color=0x64b4ff)
-        embed.add_field(value='Ready?')
-        embed.add_field(name=member1_name, inline=False) #member1 index1
-        embed.add_field(name=member2_name, inline=False) #member2 index2
-        
+        embed = discord.Embed(description=f'{fighters[0].user.name} 🆚 {fighters[1].user.name}', color=0x64b4ff)
+        embed.add_field(name=fighters[0].user.name, value='?', inline=True)
+        embed.add_field(name=fighters[1].user.name, value='?', inline=True)
+        embed.add_field(name='Choose your weapon', value='If your weapon is not selected on reaction, please re-react', inline=False)
         message = await ctx.send(embed=embed)
 
-        while current_hp[0] > 0 and current_hp[1] > 0:
-            damage = rantint(1,40)
+        for emote in battle_util.weapon_choice.keys():
+            await message.add_reaction(emote)
+
+        reaction_list = set()
+        waiting = True
+        def check(reaction, user):
+            if reaction.message == message:
+                reaction_list.add(user)
+
+                for fighter in fighters:
+                    if user == fighter.user:
+                        fighter.set_weapon(reaction.emoji)
+                        return True
+                        #embed.set_field_at(index=fighter.position, name=embed.fields[fighter.position].name, value=reaction.emoji)
+                        # await message.edit(embed=embed)
+                        # await sleep(1)
+
+                # if users_set.issubset(reaction_list) and waiting:
+                #     waiting = not waiting
+                #     return
+
+        while not users_set.issubset(reaction_list):
+            await self.bot.wait_for('reaction_add', check=check, timeout=20.0)
+            done = await self.bot.wait_for('reaction_add', check=check, timeout=20.0)
+            if done is None:
+                await ctx.send('__**Error:**__\nThe pending game has timed out!')
+            for fighter in fighters:
+                try:
+                    embed.set_field_at(index=fighter.position, name=embed.fields[fighter.position].name, value=fighter.weapon.icon)
+                except:
+                    embed.set_field_at(index=fighter.position, name=embed.fields[fighter.position].name, value='?')
+            await message.edit(embed=embed)
+
+        embed.clear_fields()
+        embed.add_field(name=f'{fighters[0].name} - {fighters[0].weapon.icon}', value=f'{fighters[0].hp}/{fighters[0].hp_max} {fighters[0].heart}', inline=True)
+        embed.add_field(name=f'{fighters[1].name} - {fighters[1].weapon.icon}', value=f'{fighters[1].hp}/{fighters[1].hp_max} {fighters[1].heart}', inline=True)
+        await message.edit(embed=embed)
+
+        attacker = randint(0, 1)
+        description = ''
+        turns = 2
+        while fighters[0].hp > 0 and fighters[1].hp > 0:
+            attacked = attacker
+            attacker = (attacked + 1) % 2
+            seed = randint(0, 1000)
+            data = {
+                'seed': seed,
+                'turn': turns // 2,
+                'attacker': fighters[attacker],
+                'attacked': fighters[attacked],
+                'embed': embed,
+            }
+
+            results = fighters[attacker].attack(data)
+            text = results.get('text').format(attacker=fighters[attacker].name, attacked=fighters[attacked].name)
+            text = '{heart} '.format(heart=fighters[attacker].circle) + text
+            description = battle_util.text_handler(self, text, description)
+
+            embed.description = description
+            field_name = embed.fields[fighters[attacked].position].name
+            field_value = f'{max(0, fighters[attacked].hp)}/100 {fighters[attacked].heart}'
+            embed.set_field_at(index=attacked, name=field_name, value=field_value)
+            embed.color = fighters[attacker].color
+            await message.edit(embed=embed)
+
+            await asyncio.sleep(2)
+            turns += 1
+            
+        if fighters[0].hp < fighters[1].hp:
+            winner = 1
+        else:
+            winner = 0
+        
+        text = f'👑 __**{fighters[winner].name}**__ has deafeated __{fighters[(winner + 1) % 2].name}__'
+        embed.description = battle_util.text_handler(self, text, description)
+        embed.add_field(name='Winner', value=fighters[winner].user.mention, inline=False)
+        await message.edit(embed=embed)
 
 
     @commands.command(aliases=['whatsthis', 'owo'], help='no arg: requested by Naaz')

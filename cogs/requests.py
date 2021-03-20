@@ -4,6 +4,10 @@ import os
 from discord.ext import commands
 from utilities import formatting, settings, dbinteract
 from tinydb import TinyDB, Query
+from random import randint
+
+from cogs.battle import fighter as fighter_util
+from cogs.battle import battle as battle_util
 
 settings = settings.config("settings.json")
 
@@ -17,11 +21,8 @@ class Requests(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def test(self, ctx):
-        role = self.guild.get_role(settings.SPEED_FINGERS_ID)
-        for member in role.members:
-            await member.remove_roles(role, reason='bump role')
-
+    async def test(self, ctx, *, inp):
+        await ctx.send('')        
 
     #@commands.command()
     #@commands.has_permissions(administrator=True)
@@ -101,6 +102,124 @@ class Requests(commands.Cog):
         for fname in file_list:
             if fname not in member_list:
                 os.remove(str(fname) + ".json")
+
+
+    @commands.command()
+    @commands.is_owner()
+    async def test_weapon(self, ctx, num_tests, num_round, weapon_emote):
+        fighter = fighter_util.Fighter(ctx.author, 0)
+        fighter.set_weapon(weapon_emote)
+        weapon_name = str(fighter.weapon)
+        kills = 0
+
+        with open(f'{weapon_name}.csv', 'w+') as weapon_file:
+            weapon_file.write(f'{fighter.weapon}\n')
+
+            index_test = 0
+            total_damage = 0
+            while index_test < int(num_tests):
+
+                index_round = 0
+                damage = 0
+                turns = 1
+                temp_fighter = fighter_util.Fighter(ctx.author, 0)
+                temp_fighter.set_weapon(weapon_emote)
+                while index_round < int(num_round):
+                    seed = randint(0, 1000)
+                    data = {
+                        'seed': seed,
+                        'turn': turns,
+                        'attacker': temp_fighter,
+                        'attacked': temp_fighter,
+                    }
+                    results = temp_fighter.attack(data)
+                    damage += results.get('damage')
+                    index_round += 1
+                    turns += 1
+                if damage >= 100:
+                    damage = 100
+                    kills += 1
+
+                weapon_file.write(f'{min(100, damage)}\n')
+                total_damage += min(100, damage)
+                index_test += 1
+
+        await ctx.send(
+            content=f'Your test of {weapon_emote} is complete.\nThe mean (where damage is (0, 100]) is {total_damage/int(num_tests)}\nKill proportion {kills/int(num_tests)}', 
+            file=discord.File(
+                fp=f'{weapon_name}.csv', 
+                filename=f'{weapon_name}.csv'
+            )
+        )
+
+
+    @commands.command()
+    @commands.is_owner()
+    async def test_weapons(self, ctx, num_tests, num_round):
+        fighters = [] # Each entry represents a different weapon
+        weapon_names = []
+        weapon_emotes = []
+        total_damage = []
+        kills = []
+        for weapon in battle_util.weapon_choice:
+            fighter = fighter_util.Fighter(ctx.author, 0)
+            fighter.set_weapon(weapon)
+            fighters.append(fighter)
+            weapon_names.append(str(fighter.weapon))
+            weapon_emotes.append(weapon)
+            total_damage.append(0)
+            kills.append(0)
+
+        with open(f'Weapons.csv', 'w+') as weapon_file:
+            for weapon in weapon_names:
+                weapon_file.write(f'{weapon},')
+            weapon_file.write('\n')
+
+            index_test = 0
+            while index_test < int(num_tests):
+                
+                index_fighter = 0
+                for fighter in fighters:
+
+                    index_round = 0
+                    damage = 0
+                    turns = 1
+                    temp_fighter = fighter_util.Fighter(ctx.author, 0)
+                    temp_fighter.set_weapon(weapon_emotes[index_fighter])
+                    while index_round < int(num_round):
+                        seed = randint(0, 1000)
+                        data = {
+                            'seed': seed,
+                            'turn': turns,
+                            'attacker': temp_fighter,
+                            'attacked': temp_fighter,
+                        }
+                        results = temp_fighter.attack(data)
+                        damage += results.get('damage')
+                        
+                        index_round += 1
+                        turns += 1
+                    if damage >= 100:
+                        damage = 100
+                        kills[index_fighter] += 1
+                    weapon_file.write(f'{min(100, damage)},')
+                    total_damage[index_fighter] += min(100, damage)
+                    index_fighter += 1
+                index_test += 1
+                weapon_file.write(f'\n')
+        
+        string = '\n__Averages where damage is (0, 100]__\n'
+        i = 0
+        for fighter in fighters:
+            string = f'{string}{weapon_names[i]}: {total_damage[i]/int(num_tests)}\n'
+            i += 1
+        string = string + '__Kill proportions__\n'
+        i = 0
+        for kill_total in kills:
+            string = f'{string}{weapon_names[i]}: {kill_total/int(num_tests)}\n'
+            i += 1
+
+        await ctx.send(content=f'Your test of all weapons is complete{string}', file=discord.File(fp=f'Weapons.csv', filename=f'Weapons.csv'))
 
 
     @commands.command(help='noarg: a simple way to tell if the bot is online')
