@@ -26,8 +26,6 @@ class Fighter():
     def set_weapon(self, weapon): # Either pass emote in weapon_choice or weapon constructor
         if weapon in battle.weapon_choice.keys():
             self.weapon = battle.weapon_choice.get(weapon)()
-        else:
-            self.weapon = weapon()
 
     def sub_hp(self, hp):
         self.hp -= hp

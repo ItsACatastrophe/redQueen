@@ -13,7 +13,7 @@ class RangeDict(dict): # Range keys are not inclusive of their upper boundary.
 
 # Abstract base class for all weapons
 class Weapon():
-    icon = ''
+    icon = ' '
 
     def __init__(self):
         return
@@ -383,7 +383,7 @@ class Boomerang(Weapon):
     ]
 
     def attack0(self, data): 
-        damage = data.get('seed') % 12 + 18 # range = (n), min = b, seed % (n + 1) + b
+        damage = data.get('seed') % 35 + 10 # range = (n), min = b, seed % (n + 1) + b
         out = {
             'damage': damage,
             'text': f'__{{attacker}}__ throws her boomerang at __{{attacked}}__ for **{damage}** damage',
@@ -398,6 +398,7 @@ class Boomerang(Weapon):
         if data.get('seed') % 4 + 1 <= self.time_without:
             out['text'] = '__{attacker}__ found her boomerang'
             self.in_hand = True
+            self.time_without = 1
         else:
             out['text'] = self.lost_messages[(self.time_without - 1)]
             self.time_without += 1

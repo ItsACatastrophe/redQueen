@@ -1,5 +1,6 @@
 import discord
 import asyncio
+# import syllables
 
 from discord.ext import commands
 from utilities import formatting, settings
@@ -251,14 +252,14 @@ class Fun(commands.Cog):
         users_set = {fighter0.user, fighter1.user}
 
         for fighter in fighters:
-            if settings.BOT_ID == fighter.user.id:
+            if fighter.user.bot:
                 choices = list(battle_util.weapon_choice.keys())
-                seed = randint(0, len(choices))
+                seed = randint(0, len(choices) - 1)
                 fighter.set_weapon(choices[seed])
 
         embed = discord.Embed(description=f'{fighters[0].user.name} 🆚 {fighters[1].user.name}', color=0x64b4ff)
-        embed.add_field(name=fighters[0].user.name, value='?', inline=True)
-        embed.add_field(name=fighters[1].user.name, value='?', inline=True)
+        embed.add_field(name=fighters[0].name, value='?', inline=True)
+        embed.add_field(name=fighters[1].name, value='?', inline=True)
         embed.add_field(name='Choose your weapon', value='If your weapon is not selected on reaction, please re-react', inline=False)
         message = await ctx.send(embed=embed)
 
@@ -272,18 +273,12 @@ class Fun(commands.Cog):
                 reaction_list.add(user)
 
                 for fighter in fighters:
-                    if user == fighter.user:
+                    if user == fighter.user and not fighter.user.bot:
                         fighter.set_weapon(reaction.emoji)
+                        #Something has to be returned or else it just hangs
                         return True
-                        #embed.set_field_at(index=fighter.position, name=embed.fields[fighter.position].name, value=reaction.emoji)
-                        # await message.edit(embed=embed)
-                        # await sleep(1)
 
-                # if users_set.issubset(reaction_list) and waiting:
-                #     waiting = not waiting
-                #     return
-
-        while not users_set.issubset(reaction_list):
+        while not fighters[0].weapon or not fighters[1].weapon:
             await self.bot.wait_for('reaction_add', check=check, timeout=20.0)
             done = await self.bot.wait_for('reaction_add', check=check, timeout=20.0)
             if done is None:
@@ -454,6 +449,31 @@ class Fun(commands.Cog):
         ]
         while emotes:
             await message.add_reaction(emotes.pop(0))
+
+    def haiku_helper(self, words, sylla_goal):
+        count = 0
+        for word in words:
+            count += syllables.estimate(word)
+            if count > sylla_goal:
+                return
+
+    # @commands.command()
+    # @commands.has_role(settings.VERIFIED_ROLE_ID)
+    # async def haiku(self, ctx, *, message):
+    #     words = message.lower().split()
+    #     count = 0
+    #     for word in words:
+    #         count += syllables.estimate(word)
+    #         if count > 17:
+    #             return
+    #     if count < 17:
+    #         return
+
+    #     count = 0
+    #     for word in words:
+    #         count += syllables.estimate(word)
+    #         if count
+
 
 def setup(bot):
     bot.add_cog(Fun(bot))
