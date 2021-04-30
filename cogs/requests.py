@@ -1,6 +1,7 @@
 import discord
 import os
 
+from ast import literal_eval
 from discord.ext import commands
 from utilities import formatting, settings, dbinteract
 from tinydb import TinyDB, Query
@@ -44,6 +45,35 @@ class Requests(commands.Cog):
         member = Query()
         test = table.get(member.test_key1 != None)['test_key1'] #Grabs document_id X containing member.y and then finds value corresponding to ['key_str']
         print(test)
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def fix_the_server(self, ctx, *, string):
+        await ctx.send("I've started fixing the server")
+        try:
+            channels = literal_eval(string)
+        except Exception as e:
+            await ctx.send(f"something went wrong: {e}")
+            return
+        for channel_id in channels:
+            channel = self.bot.get_channel(channel_id)
+            if channel.name != channels[channel_id]:
+                await channel.edit(name=channels[channel_id])
+        await ctx.send("Everything **should** be fixed")
+
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def log_the_server(self, ctx):
+        string = "```{"
+        for channel in ctx.guild.channels:
+            if len(string) > 1500:
+                string = string + "}```"
+                await ctx.send(string)
+                string = "```{"
+            string = f'{string}{channel.id}:"{channel.name}",'
+        string = string + "}```"
+        await ctx.send(string)
 
 
     @commands.command()

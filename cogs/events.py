@@ -32,6 +32,68 @@ class Events(commands.Cog):
         self.unverified_role = None
         self.joiner_role = None
 
+        #Channel Shuffle
+        self.channel_blacklist = [
+            659451900994781207, #waiting room
+            699616478890164345, #rules-and-info (j)
+            670461223799881728, #rules-and-info (u)
+            700085368879448147, #joins-for-bot
+            660888498051743804, #verification 1 vc
+            671128398889746452, #verification 2 vc
+            686699518292394010, #verification 3 vc
+            661332217162760194, #talk with unverified vc
+            659451900994781205, #Welcome (category)
+            660890291498254416, #Info (category)
+        ]
+        self.channel_bank = [
+            "💪health-and-fitness",
+            "📝daily-prompts",
+            "💋nsfw-discussion",
+            "waiting-room",
+            "👀nsfw-images",
+            "🎥multi-media",
+            "music-baby",
+            "say-log",
+            "advertisements",
+            "🎭roles",
+            "greeter-talk",
+            "🎲dungeons-and-dragons",
+            "staff-chat",
+            "🤺mod-log",
+            "✍studying-and-careers",
+            "no-mic",
+            "suggestions",
+            "announcements-and-votes",
+            "Voice Channels",
+            "Gaming",
+            "staff-todo-list",
+            "joiners-and-leavers",
+            "afk  💤",
+            "🐣positivity",
+            "📱selfies",
+            "two people vibin",
+            "rules-and-info",
+            "🤜🤛discussions",
+            "🎨creative",
+            "General",
+            "🍳food",
+            "queen-testing",
+            "💉homegrown-memes",
+            "🐇cuties",
+            "90 billion people vibin",
+            "🎶vibe-central 🎶 (hd audio)",
+            "Talk w/ Unverifieds",
+            "Movie Night",
+            "Verification 1",
+            "❓introductions",
+            "general",
+            "Bots and Roles",
+            "🎮gaming",
+            "💄beauty-and-fashion",
+            "🎂birthdays",
+            "🐸memes",
+        ]
+        self.channel_bank_max = 41
 
     #only works on cogs, will not apply any module updates
     @commands.command(help='no arg: WARNING reloads all cogs')
@@ -284,10 +346,17 @@ class Events(commands.Cog):
                 contents = message.content[0:-300] + "..."
                 await owner.dm_channel.send(f"**-**Direct Message from __'{message.author.id}'__\n**{message.author.name}#{message.author.discriminator}**: {contents}")
             
+    async def channel_name_shuffle(self, message):
+        index_emote = randint(0, self.channel_bank_max)
+        index_channel = randint(0, len(message.guild.channels))
+        channel = message.guild.channels[index_channel]
+        if not channel.id in self.channel_blacklist:
+            await message.guild.channels[index_channel].edit(name=self.channel_bank[index_emote], reason="April Fools!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.guild:
+            #await Events.channel_name_shuffle(self, message) #April Fools
             await Events.chat_filter(self, message)
             await Events.disboard_onm(self, message)
             await Events.activity_upd(self, message)
